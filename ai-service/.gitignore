@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+serviceAccountKey.json
+
+# Dataset público PetFinder.my — no se sube al repo
+data/

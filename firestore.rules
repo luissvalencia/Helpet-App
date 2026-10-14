@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // El doc de users se crea directo desde Flutter en el registro (US-01).
+    // La lectura/edición del propio perfil pasa por el backend (Admin SDK),
+    // que no está sujeto a estas reglas.
+    match /users/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if false;
+    }
+
+    // Los reportes se crean/leen/editan solo a través del backend (Admin SDK).
+    match /reportes/{reportId} {
+      allow read, write: if false;
+    }
+
+    // Sprint 2 (E3): embeddings y coincidencias los genera el ai-service y
+    // los lee el backend, ambos con Admin SDK. El cliente Flutter nunca
+    // accede directo — las coincidencias llegan por
+    // GET /reportes/:id/coincidencias.
+    match /embeddings/{embeddingId} {
+      allow read, write: if false;
+    }
+
+    match /coincidencias/{coincidenciaId} {
+      allow read, write: if false;
+    }
+
+    // Mascotas guardadas del perfil (feature post-Sprint-5): mismo patrón
+    // que reportes, solo el backend (Admin SDK) lee/escribe.
+    match /mascotas/{mascotaId} {
+      allow read, write: if false;
+    }
+  }
+}

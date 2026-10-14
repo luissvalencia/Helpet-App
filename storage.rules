@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fotos de reportes: el cliente sube directo (US-06/07), el backend solo
+    // guarda la URL resultante. Lectura pública para poder mostrarlas en listados.
+    match /reportes/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Fotos de mascotas guardadas y avatar de usuario (feature post-Sprint-5):
+    // mismo patrón que reportes/ — el cliente sube directo, lectura pública.
+    match /mascotas/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /perfiles/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

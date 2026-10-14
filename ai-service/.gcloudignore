@@ -1,0 +1,7 @@
+# Cloud Run (gcloud run deploy --source): solo lo que usa el Dockerfile
+*
+!Dockerfile
+!requirements.txt
+!app/
+!app/**
+app/**/__pycache__/

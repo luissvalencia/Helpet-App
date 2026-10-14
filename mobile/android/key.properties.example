@@ -1,0 +1,4 @@
+storePassword=CAMBIAR_ESTA_CONTRASENA
+keyPassword=CAMBIAR_ESTA_CONTRASENA
+keyAlias=helpet
+storeFile=../helpet-release.jks

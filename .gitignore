@@ -1,0 +1,21 @@
+
+# Credenciales — nunca deben llegar al repo (cada subcarpeta ya las
+# ignora localmente, esto es un respaldo a nivel raíz)
+.env
+.env.*
+!.env.example
+serviceAccountKey.json
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (por si algo queda fuera de backend/)
+node_modules/

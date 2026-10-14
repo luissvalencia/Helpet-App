@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "507463435276",
+    "project_id": "helpet-app-503fd",
+    "storage_bucket": "helpet-app-503fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507463435276:android:ad0488dfa6e895dde41a29",
+        "android_client_info": {
+          "package_name": "com.helpet.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "507463435276-7kcktp0qtfkef43s6hejc6dg9jb6ifjr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.helpet.app",
+            "certificate_hash": "beeca1017f7c53cc594537f1e80c5d229e100c34"
+          }
+        },
+        {
+          "client_id": "507463435276-nfqepng1lklkpnp54nl1ptqellmlchm0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.helpet.app",
+            "certificate_hash": "8cdd3c71a763dc3b22cba98e2a44b16d4933ce65"
+          }
+        },
+        {
+          "client_id": "507463435276-p96s578q0eaqmlflv8bqa1sfltksvd9e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsZv1JjimsPKpzra2es9w3w-3C0vceZXU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "507463435276-p96s578q0eaqmlflv8bqa1sfltksvd9e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

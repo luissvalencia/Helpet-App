@@ -30,6 +30,11 @@ jobs:
       - name: Tests unitarios
         run: npm test
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
       - name: Tests de integración (Firestore + Auth Emulator)
         run: npm run test:integration:ci
 

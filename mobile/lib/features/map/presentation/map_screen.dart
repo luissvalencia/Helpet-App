@@ -21,8 +21,10 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
+  LatLng? _ubicacionUsuario;
+  bool _reintentoConPermisoHecho = false;
   LatLng? _ultimoCentroConsultado;
   LatLng? _centroCamaraActual;
   Reporte? _reporteSeleccionado;
@@ -39,29 +41,54 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _centrarEnUbicacionActual();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _colorController.dispose();
     _razaController.dispose();
     super.dispose();
   }
 
-  Future<void> _centrarEnUbicacionActual() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // En el primer arranque, AuthGate pide el permiso de notificaciones al
+    // mismo tiempo que este mapa pide el de ubicación, y Android descarta el
+    // segundo diálogo: el mapa se quedaba en Bogotá hasta reiniciar la app.
+    // Se reintenta al volver a primer plano (al cerrarse ese diálogo, o al
+    // regresar de activar el GPS o el permiso en la configuración). Solo el
+    // primer reintento puede mostrar el diálogo, para no insistir si el
+    // usuario lo rechaza.
+    if (state != AppLifecycleState.resumed || _ubicacionUsuario != null || _cargandoUbicacion) {
+      return;
+    }
+    final pedirPermiso = !_reintentoConPermisoHecho;
+    _reintentoConPermisoHecho = true;
+    _centrarEnUbicacionActual(pedirPermiso: pedirPermiso);
+  }
+
+  Future<void> _centrarEnUbicacionActual({bool pedirPermiso = true}) async {
     setState(() {
       _cargandoUbicacion = true;
       _errorUbicacion = null;
     });
     try {
-      final position = await ref.read(locationServiceProvider).obtenerUbicacionActual();
+      final position = await ref
+          .read(locationServiceProvider)
+          .obtenerUbicacionActual(pedirPermiso: pedirPermiso);
+      if (!mounted) return;
       final centro = LatLng(position.latitude, position.longitude);
+      _ubicacionUsuario = centro;
       _aplicarCentro(centro);
       _mapController?.animateCamera(CameraUpdate.newLatLngZoom(centro, 13));
-    } on LocationException catch (e) {
-      _aplicarCentro(_bogota);
-      setState(() => _errorUbicacion = e.message);
+    } catch (e) {
+      if (!mounted) return;
+      if (_ultimoCentroConsultado == null) _aplicarCentro(_bogota);
+      setState(() => _errorUbicacion =
+          e is LocationException ? e.message : 'No se pudo obtener tu ubicación');
     } finally {
       if (mounted) setState(() => _cargandoUbicacion = false);
     }
@@ -180,7 +207,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         children: [
           GoogleMap(
             initialCameraPosition: CameraPosition(target: centro ?? _bogota, zoom: 13),
-            onMapCreated: (controller) => _mapController = controller,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              // Si la ubicación llegó antes de que el mapa terminara de
+              // crearse, animateCamera no tenía controlador todavía.
+              final ubicacion = _ubicacionUsuario;
+              if (ubicacion != null) {
+                controller.moveCamera(CameraUpdate.newLatLngZoom(ubicacion, 13));
+              }
+            },
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
             onCameraMove: (position) => _centroCamaraActual = position.target,

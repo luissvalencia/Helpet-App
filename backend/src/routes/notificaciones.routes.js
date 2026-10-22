@@ -17,6 +17,7 @@ router.post(
 router.get("/", verifyToken, notificacionesController.listar);
 router.post("/:id/marcar-leida", verifyToken, notificacionesController.marcarLeida);
 router.post("/marcar-todas-leidas", verifyToken, notificacionesController.marcarTodasLeidas);
+router.delete("/", verifyToken, notificacionesController.eliminarTodas);
 router.delete("/:id", verifyToken, notificacionesController.eliminar);
 
 module.exports = router;

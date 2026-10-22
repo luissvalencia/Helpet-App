@@ -161,4 +161,39 @@ describe("Centro de notificaciones in-app", () => {
       .set("Authorization", `Bearer ${dueno.idToken}`);
     expect(lista.body).toHaveLength(0);
   });
+
+  it("DELETE /notificaciones borra todas las propias y ninguna ajena", async () => {
+    const usuario = await crearUsuarioDePrueba({ nombre: "Usuario" });
+    const otro = await crearUsuarioDePrueba({ nombre: "Otro" });
+
+    const nueva = (uid) =>
+      firestore.collection("notificacionesUsuario").add({
+        uid,
+        titulo: "Título",
+        cuerpo: "Cuerpo",
+        tipo: "nuevo_reporte",
+        data: {},
+        leida: false,
+        creadoEn: new Date(),
+      });
+    await nueva(usuario.uid);
+    await nueva(usuario.uid);
+    await nueva(otro.uid);
+
+    const respuesta = await request(app)
+      .delete("/notificaciones")
+      .set("Authorization", `Bearer ${usuario.idToken}`);
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.eliminadas).toBe(2);
+
+    const listaPropia = await request(app)
+      .get("/notificaciones")
+      .set("Authorization", `Bearer ${usuario.idToken}`);
+    expect(listaPropia.body).toHaveLength(0);
+
+    const listaAjena = await request(app)
+      .get("/notificaciones")
+      .set("Authorization", `Bearer ${otro.idToken}`);
+    expect(listaAjena.body).toHaveLength(1);
+  });
 });

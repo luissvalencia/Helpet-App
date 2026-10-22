@@ -24,4 +24,8 @@ class NotificacionesRepository {
   Future<void> eliminar(String id) async {
     await _apiClient.delete('/notificaciones/$id');
   }
+
+  Future<void> eliminarTodas() async {
+    await _apiClient.delete('/notificaciones');
+  }
 }

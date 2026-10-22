@@ -50,18 +50,37 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
     }
   }
 
-  Future<void> _marcarTodasLeidas() async {
-    setState(() {
-      _notificaciones = _notificaciones?.map((n) => n.copyWith(leida: true)).toList();
-    });
+  Future<void> _borrarTodas() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Borrar todas las notificaciones?'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    final anteriores = _notificaciones;
+    setState(() => _notificaciones = []);
     try {
-      await ref.read(notificacionesRepositoryProvider).marcarTodasLeidas();
+      await ref.read(notificacionesRepositoryProvider).eliminarTodas();
       ref.invalidate(notificacionesProvider);
-    } on Exception catch (_) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo marcar todo como leído, intenta de nuevo.')),
+          const SnackBar(content: Text('No se pudieron borrar, intenta de nuevo.')),
         );
+        setState(() => _notificaciones = anteriores);
       }
     }
   }
@@ -89,10 +108,11 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
       appBar: AppBar(
         title: const Text('Notificaciones'),
         actions: [
-          if ((_notificaciones ?? const []).any((n) => !n.leida))
-            TextButton(
-              onPressed: _marcarTodasLeidas,
-              child: const Text('Marcar todas'),
+          if ((_notificaciones ?? const []).isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: 'Borrar todas',
+              onPressed: _borrarTodas,
             ),
         ],
       ),

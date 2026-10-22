@@ -50,4 +50,13 @@ async function eliminar(req, res, next) {
   }
 }
 
-module.exports = { notificarCoincidencia, listar, marcarLeida, marcarTodasLeidas, eliminar };
+async function eliminarTodas(req, res, next) {
+  try {
+    const result = await notificacionesService.eliminarTodasNotificaciones(req.user.uid);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { notificarCoincidencia, listar, marcarLeida, marcarTodasLeidas, eliminar, eliminarTodas };

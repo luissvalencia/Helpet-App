@@ -79,6 +79,17 @@ async function eliminarNotificacion(id, uid) {
   return { ok: true };
 }
 
+async function eliminarTodasNotificaciones(uid) {
+  const snapshot = await notificacionesCollection.where("uid", "==", uid).get();
+  // Un batch de Firestore admite como máximo 500 operaciones.
+  for (let i = 0; i < snapshot.docs.length; i += 500) {
+    const batch = firestore.batch();
+    snapshot.docs.slice(i, i + 500).forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+  return { ok: true, eliminadas: snapshot.docs.length };
+}
+
 async function enviarNotificacionCoincidencia(coincidenciaId) {
   const coincidenciaDoc = await coincidenciasCollection.doc(coincidenciaId).get();
   if (!coincidenciaDoc.exists) return { enviado: false, motivo: "coincidencia_no_encontrada" };
@@ -225,4 +236,5 @@ module.exports = {
   marcarNotificacionLeida,
   marcarTodasLeidas,
   eliminarNotificacion,
+  eliminarTodasNotificaciones,
 };

@@ -86,5 +86,21 @@ void main() {
       expect(metodoLlamado, 'DELETE');
       expect(pathLlamado, '/notificaciones/n1');
     });
+
+    test('eliminarTodas() hace DELETE a la colección', () async {
+      String? pathLlamado;
+      String? metodoLlamado;
+      final client = MockClient((request) async {
+        pathLlamado = request.url.path;
+        metodoLlamado = request.method;
+        return http.Response(jsonEncode({'ok': true, 'eliminadas': 2}), 200);
+      });
+
+      final repo = NotificacionesRepository(ApiClient(auth, client: client));
+      await repo.eliminarTodas();
+
+      expect(metodoLlamado, 'DELETE');
+      expect(pathLlamado, '/notificaciones');
+    });
   });
 }

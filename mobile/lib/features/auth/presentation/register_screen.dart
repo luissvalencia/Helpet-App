@@ -8,6 +8,7 @@ import '../../../core/widgets/section_card.dart';
 import '../../legal/presentation/politica_privacidad_screen.dart';
 import '../../legal/presentation/terminos_uso_screen.dart';
 import 'auth_providers.dart';
+import '../../../core/utils/validadores.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -111,6 +112,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   children: [
                     TextFormField(
                       controller: _nombreController,
+                      inputFormatters: limitarA(maxNombrePersona),
                       decoration: const InputDecoration(labelText: 'Nombre'),
                       validator: (value) =>
                           (value == null || value.trim().isEmpty) ? 'Requerido' : null,
@@ -120,8 +122,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'Correo'),
-                      validator: (value) =>
-                          (value == null || !value.contains('@')) ? 'Correo inválido' : null,
+                      validator: validarCorreo,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -135,14 +136,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     TextFormField(
                       controller: _telefonoController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: limitarA(20),
                       decoration: const InputDecoration(
                         labelText: 'Teléfono',
                         helperText: 'Es el medio de contacto si alguien confirma '
                             'una coincidencia con tu mascota.',
                         helperMaxLines: 2,
                       ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty) ? 'Requerido' : null,
+                      validator: validarTelefono,
                     ),
                   ],
                 ),

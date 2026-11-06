@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/location/location_service.dart';
 import '../reportes_providers.dart';
+import '../../../../core/utils/validadores.dart';
 
 class LocationPickerField extends ConsumerStatefulWidget {
   const LocationPickerField({
@@ -146,6 +147,7 @@ class _LocationPickerFieldState extends ConsumerState<LocationPickerField> {
         const SizedBox(height: 12),
         TextFormField(
           controller: widget.direccionController,
+          inputFormatters: limitarA(maxDireccionReporte),
           decoration: const InputDecoration(labelText: 'Dirección (opcional)'),
         ),
       ],

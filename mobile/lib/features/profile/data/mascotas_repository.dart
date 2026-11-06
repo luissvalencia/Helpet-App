@@ -13,6 +13,7 @@ class MascotasRepository {
     String color = '',
     String descripcion = '',
     String? fotoUrl,
+    bool confirmarEspecie = false,
   }) async {
     final json = await _apiClient.post('/mascotas', body: {
       'nombre': nombre,
@@ -21,6 +22,7 @@ class MascotasRepository {
       'color': color,
       'descripcion': descripcion,
       'fotoUrl': fotoUrl,
+      if (confirmarEspecie) 'confirmarEspecie': true,
     }) as Map<String, dynamic>;
     return MascotaGuardada.fromJson(json);
   }
@@ -40,6 +42,7 @@ class MascotasRepository {
     String? color,
     String? descripcion,
     String? fotoUrl,
+    bool confirmarEspecie = false,
   }) async {
     final json = await _apiClient.patch('/mascotas/$id', body: {
       if (nombre != null) 'nombre': nombre,
@@ -48,6 +51,7 @@ class MascotasRepository {
       if (color != null) 'color': color,
       if (descripcion != null) 'descripcion': descripcion,
       if (fotoUrl != null) 'fotoUrl': fotoUrl,
+      if (confirmarEspecie) 'confirmarEspecie': true,
     }) as Map<String, dynamic>;
     return MascotaGuardada.fromJson(json);
   }

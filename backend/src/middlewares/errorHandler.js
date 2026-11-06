@@ -13,7 +13,7 @@ function errorHandler(err, req, res, next) {
   const exponerDetalle = isOperational || process.env.NODE_ENV !== "production";
   const message = exponerDetalle ? err.message || "Error interno del servidor" : "Error interno del servidor";
 
-  res.status(status).json({ error: message });
+  res.status(status).json(isOperational && err.codigo ? { error: message, codigo: err.codigo } : { error: message });
 }
 
 module.exports = errorHandler;

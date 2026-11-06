@@ -17,6 +17,8 @@ import '../domain/mascota.dart';
 import '../domain/ubicacion.dart';
 import 'reportes_providers.dart';
 import 'widgets/location_picker_field.dart';
+import 'widgets/validacion_foto_servidor.dart';
+import '../../../core/utils/validadores.dart';
 
 class CreateReportScreen extends ConsumerStatefulWidget {
   const CreateReportScreen({super.key});
@@ -109,6 +111,10 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
     }
 
     setState(() => _saving = true);
+    // Foto subida en este intento: si el reporte no se guarda, se borra de
+    // Storage para no dejar archivos huérfanos. Nunca es la foto de una
+    // mascota guardada (esa se reusa, no se sube de nuevo).
+    String? fotoSubida;
     try {
       String fotoUrl;
       if (_foto != null) {
@@ -116,11 +122,15 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         fotoUrl = await ref
             .read(storageRepositoryProvider)
             .uploadFotoReporte(file: _foto!, uid: uid);
+        fotoSubida = fotoUrl;
       } else {
         fotoUrl = _fotoUrlDeMascota!;
       }
+      if (!mounted) return;
 
-      await ref.read(reportesRepositoryProvider).crearReporte(
+      final creado = await enviarConValidacionDeEspecie(
+        context,
+        (confirmarEspecie) => ref.read(reportesRepositoryProvider).crearReporte(
             tipo: _tipo,
             mascota: Mascota(
               nombre: _tipo == 'perdida'
@@ -140,7 +150,16 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                   : _direccionController.text.trim(),
             ),
             mascotaId: _tipo == 'perdida' ? _mascotaSeleccionadaId : null,
-          );
+            confirmarEspecie: confirmarEspecie,
+          ),
+      );
+      if (creado == null) {
+        // El usuario prefirió revisar la especie antes de publicar.
+        if (fotoSubida != null) {
+          ref.read(storageRepositoryProvider).eliminarPorUrl(fotoSubida);
+        }
+        return;
+      }
 
       // El mapa y los listados quedan montados permanentemente (IndexedStack
       // en HomeShell), así que no se refrescan solos al volver de crear un
@@ -151,9 +170,21 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
 
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
+      if (fotoSubida != null) {
+        ref.read(storageRepositoryProvider).eliminarPorUrl(fotoSubida);
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        if (esFotoRechazada(e)) {
+          // La foto no sirve: se quita para que el usuario elija otra.
+          setState(() {
+            _foto = null;
+            _fotoUrlDeMascota = null;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message),
+          duration: const Duration(seconds: 5),
+        ));
       }
     } on ClientException catch (_) {
       if (mounted) {
@@ -225,6 +256,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _nombreController,
+                      inputFormatters: limitarA(maxNombreMascota),
                       decoration: const InputDecoration(labelText: 'Nombre de la mascota'),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                     ),
@@ -243,16 +275,19 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _razaController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Raza'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _colorController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Color'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _descripcionController,
+                    inputFormatters: limitarA(maxDescripcion),
                     decoration: const InputDecoration(labelText: 'Descripción'),
                     maxLines: 3,
                   ),

@@ -1,19 +1,8 @@
-from pathlib import Path
-
 import numpy as np
-import torch
 from PIL import Image
-from torchvision.models.segmentation import (
-    LRASPP_MobileNet_V3_Large_Weights,
-    lraspp_mobilenet_v3_large,
-)
 
-WEIGHTS_PATH = Path(__file__).with_name("lraspp_voc.pt")
+from .segmenter import VOC_GATO, segmenter
 
-# Clase "cat" en las etiquetas VOC del segmentador.
-VOC_GATO = 8
-# Lado mayor al que se reduce la foto antes de segmentar.
-LADO_MAX = 400
 # Si el gato ocupa menos píxeles que esto, la medición no es confiable.
 MIN_PIXELES = 200
 
@@ -33,28 +22,16 @@ class FurColorEstimator:
     para no avisar coincidencias entre un gato negro y uno claro (ver
     MAX_DIFERENCIA_LUMINOSIDAD_GATOS en config.py).
 
-    El modelo se carga en el primer uso: los reportes de perros nunca lo
-    necesitan."""
-
-    def __init__(self):
-        self._model = None
-        self._preprocess = LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1.transforms()
+    El segmentador es el compartido de segmenter.py y se carga en el primer
+    uso."""
 
     def _cargar(self):
-        if self._model is None:
-            model = lraspp_mobilenet_v3_large(weights=None, weights_backbone=None)
-            model.load_state_dict(torch.load(WEIGHTS_PATH, map_location="cpu"))
-            self._model = model.eval()
-        return self._model
+        return segmenter.modelo()
 
-    @torch.no_grad()
     def luminosidad_gato(self, image: Image.Image) -> float | None:
         """Mediana de L* del pelaje, o None si no se detecta un gato."""
-        img = image.convert("RGB")
-        img.thumbnail((LADO_MAX, LADO_MAX))
-        logits = self._cargar()(self._preprocess(img).unsqueeze(0))["out"]
-        logits = torch.nn.functional.interpolate(logits, size=img.size[::-1], mode="bilinear")
-        mascara = (logits[0].argmax(0) == VOC_GATO).numpy()
+        img = segmenter.reducir(image)
+        mascara = (segmenter.clases_por_pixel(self._cargar(), img) == VOC_GATO).numpy()
         if mascara.sum() < MIN_PIXELES:
             return None
         rgb = np.asarray(img, dtype=np.float64) / 255.0

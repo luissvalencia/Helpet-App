@@ -50,6 +50,18 @@ def _pelaje_incompatible(especie: str, luminosidad_a, luminosidad_b) -> bool:
     return abs(luminosidad_a - luminosidad_b) > MAX_DIFERENCIA_LUMINOSIDAD_GATOS
 
 
+def _ya_existe_coincidencia(reporte_a: str, reporte_b: str) -> bool:
+    """Cuando se edita la foto de un reporte se vuelve a generar su embedding
+    y a comparar: sin esto se duplicarían las coincidencias que ya tenía (y
+    una ya descartada por el usuario volvería a aparecer como pendiente)."""
+    coincidencias = db.collection("coincidencias")
+    for a, b in ((reporte_a, reporte_b), (reporte_b, reporte_a)):
+        existentes = coincidencias.where("reporteIdA", "==", a).where("reporteIdB", "==", b).stream()
+        if any(True for _ in existentes):
+            return True
+    return False
+
+
 def find_and_save_matches(
     reporte_id: str,
     tipo: str,
@@ -100,7 +112,7 @@ def find_and_save_matches(
 
         if similitud >= SIMILARITY_THRESHOLD and not _pelaje_incompatible(
             especie, luminosidad_pelaje, embedding_candidato.get("luminosidadPelaje")
-        ):
+        ) and not _ya_existe_coincidencia(reporte_id, candidato.id):
             _, coincidencia_ref = db.collection("coincidencias").add(
                 {
                     "reporteIdA": reporte_id,

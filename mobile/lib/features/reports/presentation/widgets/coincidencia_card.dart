@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_badge.dart';
 import '../../../profile/presentation/profile_providers.dart';
 import '../../domain/coincidencia.dart';
 import '../reportes_providers.dart';
+import '../../../../core/utils/validadores.dart';
 
 /// Tarjeta de una coincidencia, reutilizada tanto en el detalle de un
 /// reporte propio como en la pantalla "Mis coincidencias". `tipoPropio` es
@@ -148,6 +149,7 @@ class CoincidenciaCard extends ConsumerWidget {
             TextField(
               controller: motivoController,
               maxLines: 3,
+              inputFormatters: limitarA(maxMotivoReporte),
               decoration: const InputDecoration(
                 labelText: 'Motivo',
                 border: OutlineInputBorder(),

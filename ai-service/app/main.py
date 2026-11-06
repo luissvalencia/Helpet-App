@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .routers import embeddings
+from .routers import embeddings, imagenes
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Helpet AI Service")
 
 app.include_router(embeddings.router)
+app.include_router(imagenes.router)
 
 
 @app.exception_handler(Exception)

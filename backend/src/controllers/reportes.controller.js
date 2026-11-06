@@ -4,10 +4,10 @@ const usersService = require("../services/users.service");
 
 async function crearReporte(req, res, next) {
   try {
-    const { tipo, mascota, fotoUrl, ubicacion, mascotaId } = req.body;
+    const { tipo, mascota, fotoUrl, ubicacion, mascotaId, confirmarEspecie } = req.body;
 
     const reporte = await reportesService.createReporte(
-      { tipo, mascota, fotoUrl, ubicacion, mascotaId },
+      { tipo, mascota, fotoUrl, ubicacion, mascotaId, confirmarEspecie },
       req.user.uid
     );
     res.status(201).json(reporte);

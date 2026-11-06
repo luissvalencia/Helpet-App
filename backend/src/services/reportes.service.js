@@ -1,12 +1,18 @@
 const { firestore, admin } = require("../config/firebase");
 const { haversineDistanceKm } = require("./geo.service");
-const { dispararGeneracionEmbedding } = require("./aiService.service");
+const { dispararGeneracionEmbedding, validarFotoDeMascota } = require("./aiService.service");
 const { notificarReportesCercanos } = require("./notificaciones.service");
 const logger = require("../utils/logger");
 
 const reportesCollection = firestore.collection("reportes");
 
 async function createReporte(data, uid) {
+  // Antes de guardar nada: una foto que no es de un perro o un gato (texto,
+  // paisaje, captura de pantalla...) no debe publicarse ni compararse.
+  await validarFotoDeMascota(data.fotoUrl, data.mascota.especie, {
+    aceptarEspecieDistinta: data.confirmarEspecie === true,
+  });
+
   const now = admin.firestore.FieldValue.serverTimestamp();
   const reporte = {
     tipo: data.tipo,
@@ -79,14 +85,36 @@ async function updateReporte(id, uid, data) {
   if (!reporte) return { error: "not_found" };
   if (reporte.creadoPor !== uid) return { error: "forbidden" };
 
+  const fotoNueva = data.fotoUrl !== undefined && data.fotoUrl !== reporte.fotoUrl;
+  const especieNueva = data.mascota !== undefined && data.mascota.especie !== reporte.mascota?.especie;
+  const cambioVisual = fotoNueva || especieNueva;
+  if (cambioVisual) {
+    await validarFotoDeMascota(data.fotoUrl ?? reporte.fotoUrl, data.mascota?.especie ?? reporte.mascota?.especie, {
+      aceptarEspecieDistinta: data.confirmarEspecie === true,
+    });
+  }
+
   const allowedFields = ["mascota", "fotoUrl", "ubicacion"];
   const updateData = { actualizadoEn: admin.firestore.FieldValue.serverTimestamp() };
   for (const field of allowedFields) {
     if (data[field] !== undefined) updateData[field] = data[field];
   }
 
+  // Si cambió la foto o la especie, el embedding guardado ya no representa al
+  // reporte: se borra y se pide uno nuevo, que vuelve a buscar coincidencias
+  // (el ai-service no duplica las que ya existían).
+  const regenerarEmbedding = cambioVisual && reporte.estado === "activo";
+  if (regenerarEmbedding) {
+    if (reporte.embeddingId) {
+      await firestore.collection("embeddings").doc(reporte.embeddingId).delete();
+    }
+    updateData.embeddingId = null;
+  }
+
   await reportesCollection.doc(id).update(updateData);
-  return { reporte: await getReporteById(id) };
+  const actualizado = await getReporteById(id);
+  if (regenerarEmbedding) dispararGeneracionEmbedding(id, actualizado.fotoUrl);
+  return { reporte: actualizado };
 }
 
 async function cerrarReporte(id, uid) {

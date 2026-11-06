@@ -12,6 +12,8 @@ import '../../reports/domain/foto_validator.dart';
 import '../../reports/presentation/reportes_providers.dart';
 import '../domain/mascota_guardada.dart';
 import 'profile_providers.dart';
+import '../../reports/presentation/widgets/validacion_foto_servidor.dart';
+import '../../../core/utils/validadores.dart';
 
 class CrearEditarMascotaScreen extends ConsumerStatefulWidget {
   const CrearEditarMascotaScreen({super.key, this.mascota});
@@ -74,6 +76,8 @@ class _CrearEditarMascotaScreenState extends ConsumerState<CrearEditarMascotaScr
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
+    // Foto subida en este intento: si no se guarda, se borra de Storage.
+    String? fotoSubida;
     try {
       String? fotoUrl = widget.mascota?.fotoUrl;
       if (_nuevaFoto != null) {
@@ -81,20 +85,24 @@ class _CrearEditarMascotaScreenState extends ConsumerState<CrearEditarMascotaScr
         fotoUrl = await ref
             .read(storageRepositoryProvider)
             .uploadFotoMascota(file: _nuevaFoto!, uid: uid);
+        fotoSubida = fotoUrl;
       }
+      if (!mounted) return;
 
       final repo = ref.read(mascotasRepositoryProvider);
-      if (_esNueva) {
-        await repo.crear(
+      final guardada = await enviarConValidacionDeEspecie(context, (confirmarEspecie) {
+        if (_esNueva) {
+          return repo.crear(
           nombre: _nombreController.text.trim(),
           especie: _especie,
           raza: _razaController.text.trim(),
           color: _colorController.text.trim(),
           descripcion: _descripcionController.text.trim(),
           fotoUrl: fotoUrl,
+          confirmarEspecie: confirmarEspecie,
         );
-      } else {
-        await repo.actualizar(
+        }
+        return repo.actualizar(
           id: widget.mascota!.id,
           nombre: _nombreController.text.trim(),
           especie: _especie,
@@ -102,14 +110,34 @@ class _CrearEditarMascotaScreenState extends ConsumerState<CrearEditarMascotaScr
           color: _colorController.text.trim(),
           descripcion: _descripcionController.text.trim(),
           fotoUrl: fotoUrl,
+          confirmarEspecie: confirmarEspecie,
         );
+      });
+      if (guardada == null) {
+        // El usuario prefirió revisar la especie antes de guardar.
+        if (fotoSubida != null) {
+          ref.read(storageRepositoryProvider).eliminarPorUrl(fotoSubida);
+        }
+        return;
       }
 
       ref.invalidate(misMascotasProvider);
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
+      if (fotoSubida != null) {
+        ref.read(storageRepositoryProvider).eliminarPorUrl(fotoSubida);
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        if (esFotoRechazada(e)) {
+          // La foto no sirve: se quita para que el usuario elija otra.
+          setState(() {
+            _nuevaFoto = null;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message),
+          duration: const Duration(seconds: 5),
+        ));
       }
     } on ClientException catch (_) {
       if (mounted) {
@@ -161,6 +189,7 @@ class _CrearEditarMascotaScreenState extends ConsumerState<CrearEditarMascotaScr
                 children: [
                   TextFormField(
                     controller: _nombreController,
+                    inputFormatters: limitarA(maxNombreMascota),
                     decoration: const InputDecoration(labelText: 'Nombre'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                   ),
@@ -178,16 +207,19 @@ class _CrearEditarMascotaScreenState extends ConsumerState<CrearEditarMascotaScr
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _razaController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Raza'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _colorController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Color'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _descripcionController,
+                    inputFormatters: limitarA(maxDescripcion),
                     decoration: const InputDecoration(labelText: 'Descripción'),
                     maxLines: 3,
                   ),

@@ -10,7 +10,7 @@ const crearReporte = (idToken, tipo, nombre) =>
     .send({
       tipo,
       mascota: { nombre, especie: "Perro" },
-      fotoUrl: "https://example.com/foto.jpg",
+      fotoUrl: "https://firebasestorage.googleapis.com/v0/b/helpet-app-503fd.firebasestorage.app/o/reportes%2Fu%2Ffoto.jpg?alt=media",
       ubicacion: { lat: 4.6, lng: -74.1 },
     });
 

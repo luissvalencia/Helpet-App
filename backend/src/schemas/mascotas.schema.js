@@ -1,8 +1,10 @@
 const { z } = require("zod");
-const { mascotaSchema } = require("./common.schema");
+const { mascotaSchema, fotoUrlSchema } = require("./common.schema");
 
 const crearMascotaSchema = mascotaSchema.extend({
-  fotoUrl: z.string({ message: "fotoUrl debe ser texto" }).optional(),
+  fotoUrl: fotoUrlSchema.nullable().optional(),
+  // Ver confirmarEspecie en reportes.schema.js.
+  confirmarEspecie: z.boolean({ message: "confirmarEspecie debe ser verdadero/falso" }).optional(),
 });
 
 const actualizarMascotaSchema = crearMascotaSchema.partial();

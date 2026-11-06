@@ -19,6 +19,15 @@ class StorageRepository {
     return _upload(carpeta: 'perfiles', file: file, uid: uid);
   }
 
+  /// Borra una foto ya subida que no se va a usar (ej. el backend la rechazó
+  /// por no mostrar un perro o un gato). Best-effort: si falla, solo queda
+  /// un archivo huérfano en Storage, no hay nada que mostrarle al usuario.
+  Future<void> eliminarPorUrl(String url) async {
+    try {
+      await _storage.refFromURL(url).delete();
+    } catch (_) {}
+  }
+
   Future<String> _upload({required String carpeta, required File file, required String uid}) async {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
     final ref = _storage.ref().child('$carpeta/$uid/$fileName');

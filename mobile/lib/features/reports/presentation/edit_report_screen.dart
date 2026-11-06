@@ -15,6 +15,8 @@ import '../domain/reporte.dart';
 import '../domain/ubicacion.dart';
 import 'reportes_providers.dart';
 import 'widgets/location_picker_field.dart';
+import 'widgets/validacion_foto_servidor.dart';
+import '../../../core/utils/validadores.dart';
 
 class EditReportScreen extends ConsumerStatefulWidget {
   const EditReportScreen({super.key, required this.reporte});
@@ -80,16 +82,20 @@ class _EditReportScreenState extends ConsumerState<EditReportScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
+    // Foto nueva subida en este intento: si el cambio no se guarda, se borra.
+    String? fotoUrl;
     try {
-      String? fotoUrl;
       if (_nuevaFoto != null) {
         final uid = ref.read(authRepositoryProvider).currentUser!.uid;
         fotoUrl = await ref
             .read(storageRepositoryProvider)
             .uploadFotoReporte(file: _nuevaFoto!, uid: uid);
       }
+      if (!mounted) return;
 
-      await ref.read(reportesRepositoryProvider).actualizarReporte(
+      final actualizado = await enviarConValidacionDeEspecie(
+        context,
+        (confirmarEspecie) => ref.read(reportesRepositoryProvider).actualizarReporte(
             id: widget.reporte.id,
             mascota: Mascota(
               nombre: widget.reporte.esPerdida
@@ -108,15 +114,35 @@ class _EditReportScreenState extends ConsumerState<EditReportScreen> {
                   ? null
                   : _direccionController.text.trim(),
             ),
-          );
+            confirmarEspecie: confirmarEspecie,
+          ),
+      );
+      if (actualizado == null) {
+        // El usuario prefirió revisar la especie antes de guardar.
+        if (fotoUrl != null) {
+          ref.read(storageRepositoryProvider).eliminarPorUrl(fotoUrl);
+        }
+        return;
+      }
 
       ref.invalidate(reporteDetalleProvider(widget.reporte.id));
       ref.invalidate(reportesCercanosProvider);
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
+      if (fotoUrl != null) {
+        ref.read(storageRepositoryProvider).eliminarPorUrl(fotoUrl);
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        if (esFotoRechazada(e)) {
+          // La foto no sirve: se quita para que el usuario elija otra.
+          setState(() {
+            _nuevaFoto = null;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message),
+          duration: const Duration(seconds: 5),
+        ));
       }
     } on ClientException catch (_) {
       if (mounted) {
@@ -175,6 +201,7 @@ class _EditReportScreenState extends ConsumerState<EditReportScreen> {
                   if (widget.reporte.esPerdida) ...[
                     TextFormField(
                       controller: _nombreController,
+                      inputFormatters: limitarA(maxNombreMascota),
                       decoration: const InputDecoration(labelText: 'Nombre de la mascota'),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                     ),
@@ -193,16 +220,19 @@ class _EditReportScreenState extends ConsumerState<EditReportScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _razaController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Raza'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _colorController,
+                    inputFormatters: limitarA(maxRazaColor),
                     decoration: const InputDecoration(labelText: 'Color'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _descripcionController,
+                    inputFormatters: limitarA(maxDescripcion),
                     decoration: const InputDecoration(labelText: 'Descripción'),
                     maxLines: 3,
                   ),

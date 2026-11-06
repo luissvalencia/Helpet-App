@@ -16,6 +16,7 @@ class ReportesRepository {
     required String fotoUrl,
     required Ubicacion ubicacion,
     String? mascotaId,
+    bool confirmarEspecie = false,
   }) async {
     final json = await _apiClient.post('/reportes', body: {
       'tipo': tipo,
@@ -23,6 +24,7 @@ class ReportesRepository {
       'fotoUrl': fotoUrl,
       'ubicacion': ubicacion.toJson(),
       if (mascotaId != null) 'mascotaId': mascotaId,
+      if (confirmarEspecie) 'confirmarEspecie': true,
     }) as Map<String, dynamic>;
     return Reporte.fromJson(json);
   }
@@ -68,11 +70,13 @@ class ReportesRepository {
     Mascota? mascota,
     String? fotoUrl,
     Ubicacion? ubicacion,
+    bool confirmarEspecie = false,
   }) async {
     final json = await _apiClient.patch('/reportes/$id', body: {
       if (mascota != null) 'mascota': mascota.toJson(),
       if (fotoUrl != null) 'fotoUrl': fotoUrl,
       if (ubicacion != null) 'ubicacion': ubicacion.toJson(),
+      if (confirmarEspecie) 'confirmarEspecie': true,
     }) as Map<String, dynamic>;
     return Reporte.fromJson(json);
   }

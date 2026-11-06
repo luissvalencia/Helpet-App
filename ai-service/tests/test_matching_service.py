@@ -177,3 +177,22 @@ def test_sin_medicion_de_pelaje_no_se_aplica_el_filtro(monkeypatch):
 
 def test_filtro_de_pelaje_no_aplica_a_perros(monkeypatch):
     assert len(_matching_gatos(monkeypatch, "Perro", 10.0, 80.0)) == 1
+
+
+def test_no_duplica_una_coincidencia_que_ya_existe(monkeypatch):
+    """Al editar la foto se regenera el embedding: el par ya guardado (en
+    cualquier orden y estado) no debe volver a crearse."""
+    from app.services import matching_service
+
+    candidato = _FakeDoc("rep-b", {"creadoPor": "otro", "embeddingId": "emb-b"})
+    embeddings = {"emb-b": _FakeDoc("emb-b", {"vector": [1.0, 0.0]})}
+    existente = _FakeDoc("c1", {"reporteIdA": "rep-b", "reporteIdB": "rep-a", "estado": "descartada"})
+    coincidencias = _FakeCollection(query_docs=[existente])
+    monkeypatch.setattr(matching_service, "db", _FakeDb([candidato], embeddings, coincidencias))
+    monkeypatch.setattr(matching_service, "_notificar_coincidencia", lambda _id: None)
+
+    guardadas = find_and_save_matches(
+        reporte_id="rep-a", tipo="perdida", especie="Perro", vector=[1.0, 0.0], creado_por="yo"
+    )
+    assert guardadas == []
+    assert coincidencias.added == []

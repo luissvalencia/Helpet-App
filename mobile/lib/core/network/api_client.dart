@@ -6,10 +6,14 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 
 class ApiException implements Exception {
-  ApiException(this.statusCode, this.message);
+  ApiException(this.statusCode, this.message, {this.codigo});
 
   final int statusCode;
   final String message;
+
+  /// Código de error del backend para casos que la app maneja distinto de un
+  /// error genérico (ej. 'especie_distinta', 'foto_sin_mascota').
+  final String? codigo;
 
   @override
   String toString() => 'ApiException($statusCode): $message';
@@ -50,11 +54,13 @@ class ApiClient {
       _auth.signOut();
     }
     String message = 'Error de red';
+    String? codigo;
     try {
       final body = jsonDecode(response.body);
       message = body['error']?.toString() ?? message;
+      codigo = body['codigo']?.toString();
     } catch (_) {}
-    throw ApiException(response.statusCode, message);
+    throw ApiException(response.statusCode, message, codigo: codigo);
   }
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {

@@ -6,6 +6,7 @@ import '../../../core/widgets/section_card.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/presentation/auth_providers.dart';
 import 'profile_providers.dart';
+import '../../../core/utils/validadores.dart';
 
 /// Pantalla dedicada para editar los datos de cuenta. En modo [obligatorio]
 /// (primer login con Google sin teléfono) la renderiza `AuthGate` en vez de
@@ -90,6 +91,7 @@ class _EditarPerfilScreenState extends ConsumerState<EditarPerfilScreen> {
                 children: [
                   TextFormField(
                     controller: _nombreController,
+                    inputFormatters: limitarA(maxNombrePersona),
                     decoration: const InputDecoration(labelText: 'Nombre'),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty) ? 'Requerido' : null,
@@ -98,18 +100,20 @@ class _EditarPerfilScreenState extends ConsumerState<EditarPerfilScreen> {
                   TextFormField(
                     controller: _telefonoController,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: limitarA(20),
                     decoration: const InputDecoration(labelText: 'Teléfono'),
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty) ? 'Requerido' : null,
+                    validator: validarTelefono,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _ciudadController,
+                    inputFormatters: limitarA(maxCiudad),
                     decoration: const InputDecoration(labelText: 'Ciudad o municipio'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _direccionController,
+                    inputFormatters: limitarA(maxDireccionReferencia),
                     decoration: const InputDecoration(
                       labelText: 'Dirección de referencia',
                       helperText: 'Barrio o zona de referencia, no tu dirección exacta.',

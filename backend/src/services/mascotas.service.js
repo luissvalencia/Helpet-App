@@ -1,8 +1,14 @@
 const { firestore, admin } = require("../config/firebase");
+const { validarFotoDeMascota } = require("./aiService.service");
 
 const mascotasCollection = firestore.collection("mascotas");
 
 async function crearMascota(data, uid) {
+  if (data.fotoUrl) {
+    await validarFotoDeMascota(data.fotoUrl, data.especie, {
+      aceptarEspecieDistinta: data.confirmarEspecie === true,
+    });
+  }
   const now = admin.firestore.FieldValue.serverTimestamp();
   const mascota = {
     uid,
@@ -37,6 +43,15 @@ async function actualizarMascota(id, uid, data) {
   const mascota = await getMascotaById(id);
   if (!mascota) return { error: "not_found" };
   if (mascota.uid !== uid) return { error: "forbidden" };
+
+  const fotoNueva = data.fotoUrl !== undefined && data.fotoUrl !== mascota.fotoUrl;
+  const especieNueva = data.especie !== undefined && data.especie !== mascota.especie;
+  const foto = data.fotoUrl ?? mascota.fotoUrl;
+  if (foto && (fotoNueva || especieNueva)) {
+    await validarFotoDeMascota(foto, data.especie ?? mascota.especie, {
+      aceptarEspecieDistinta: data.confirmarEspecie === true,
+    });
+  }
 
   const allowedFields = ["nombre", "especie", "raza", "color", "descripcion", "fotoUrl"];
   const updateData = { actualizadoEn: admin.firestore.FieldValue.serverTimestamp() };
